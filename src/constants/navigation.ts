@@ -2,10 +2,10 @@ import { NavItem, SocialLink, FooterSection } from '@/types';
 
 export const mainNavigation: NavItem[] = [
   { label: 'Home', href: '/' },
-  { label: 'How It Works', href: '/how-it-works' },
-  { label: 'FAQ', href: '/faq' },
+  { label: 'How It Works', href: '/#how-it-works' },
+  { label: 'FAQ', href: '/#faq' },
   { label: 'About Us', href: '/about-us' },
-  { label: 'Support', href: '/support' },
+  { label: 'Support', href: '/#support' },
 ];
 
 export const socialLinks: SocialLink[] = [

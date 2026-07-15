@@ -36,7 +36,7 @@ export default function Faq() {
   };
 
   return (
-    <Section className="bg-[#F5F8FF] py-20 md:py-24 border-t border-blue-100/30">
+    <Section id="faq" className="bg-[#F5F8FF] py-20 md:py-24 border-t border-blue-100/30">
       <div className="max-w-4xl mx-auto px-4">
         {/* Section Title */}
         <motion.div

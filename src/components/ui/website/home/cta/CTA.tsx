@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 
 export default function CTA() {
   return (
-    <Section className="bg-white py-16 md:py-20 relative overflow-hidden">
+    <Section id="support" className="bg-white py-16 md:py-20 relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
