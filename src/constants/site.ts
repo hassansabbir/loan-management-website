@@ -1,7 +1,7 @@
 export const siteConfig = {
-  name: "Next.js Template",
-  description: "A modern Next.js template with premium design, built-in utilities, and SEO optimization.",
-  url: "https://your-template-url.com",
+  name: "Loan Management Platform",
+  description: "A modern Loan Management Platform with premium design, built-in utilities, and SEO optimization.",
+  url: "https://loan-management-website.vercel.app/",
   ogImage: "https://your-template-url.com/og.jpg",
   links: {
     twitter: "https://twitter.com/your-handle",
