@@ -7,6 +7,7 @@ import {
   Wallet,
   ArrowRightLeft,
   Landmark,
+  Code2,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -16,6 +17,7 @@ const menuItems = [
   { label: "Funding", icon: Wallet, href: "/dashboard/funding" },
   { label: "Transactions", icon: ArrowRightLeft, href: "/dashboard/transactions" },
   { label: "Payouts", icon: Landmark, href: "/dashboard/payouts" },
+  // { label: "Integrations", icon: Code2, href: "/dashboard/integrations" },
   { label: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 

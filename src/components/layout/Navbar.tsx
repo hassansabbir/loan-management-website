@@ -98,7 +98,7 @@ export default function Navbar() {
                   {isActive && (
                     <motion.div
                       layoutId="activeNavbarTab"
-                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-white rounded-full"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
