@@ -65,7 +65,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <Section id="how-it-works" className="bg-white py-24 relative overflow-hidden">
+    <Section id="how-it-works" className="bg-white py-24 relative overflow-hidden scroll-mt-20">
       <div className="max-w-6xl mx-auto flex flex-col items-center">
         {/* Section Header */}
         <motion.div

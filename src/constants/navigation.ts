@@ -6,6 +6,7 @@ export const mainNavigation: NavItem[] = [
   { label: 'FAQ', href: '/#faq' },
   { label: 'About Us', href: '/about-us' },
   { label: 'Support', href: '/#support' },
+  { label: 'Contact Us', href: '/contact' },
 ];
 
 export const socialLinks: SocialLink[] = [

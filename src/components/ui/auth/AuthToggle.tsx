@@ -3,7 +3,7 @@ import { usePathname } from "next/navigation";
 
 export default function AuthToggle() {
   const pathname = usePathname();
-  const isSignIn = pathname === "/sign-in";
+  const isSignIn = pathname === "/sign-in" || pathname === "/login";
 
   return (
     <div className="flex p-1.5 bg-gray-100/80 rounded-xl mb-12">

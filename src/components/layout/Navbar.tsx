@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Menu,
@@ -19,6 +19,7 @@ import {
 import { mainNavigation } from "@/constants/navigation";
 import Container from "@/components/ui/Container";
 import { cn } from "@/lib/utils";
+import { storage } from "@/lib";
 import logoImg from "@/assets/loan-logo.png";
 
 export default function Navbar() {
@@ -26,20 +27,212 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const profileRef = useRef<HTMLDivElement>(null);
+  const isClickNavigatingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [activeHref, setActiveHref] = useState<string>(pathname);
+
+  const handleLogout = () => {
+    setIsProfileOpen(false);
+    setIsMenuOpen(false);
+    try {
+      storage.local.clear();
+      storage.session.clear();
+    } catch (e) {
+      console.error("Failed to clear storage on logout:", e);
+    }
+    router.push("/sign-in");
+  };
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
   }, []);
 
+  // Update active state and close menus on pathname changes
   useEffect(() => {
     setIsMenuOpen(false);
     setIsProfileOpen(false);
+
+    const cleanPath = pathname.replace(/\/$/, "") || "/";
+
+    if (cleanPath !== "/") {
+      setActiveHref(cleanPath);
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash) {
+        const matching = mainNavigation.find(
+          (item) => item.href === `/${hash}` || item.href === hash
+        );
+        if (matching) {
+          setActiveHref(matching.href);
+          isClickNavigatingRef.current = true;
+          setTimeout(() => {
+            const el = document.querySelector(hash);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth" });
+            }
+            setTimeout(() => {
+              isClickNavigatingRef.current = false;
+            }, 800);
+          }, 100);
+          return;
+        }
+      }
+      if (window.scrollY < 200) {
+        setActiveHref("/");
+      }
+    }
   }, [pathname]);
+
+  // Listen to browser hashchange (back/forward or anchor jumps)
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (pathname === "/") {
+        const hash = window.location.hash;
+        if (hash) {
+          const matching = mainNavigation.find(
+            (item) => item.href === `/${hash}` || item.href === hash
+          );
+          if (matching) {
+            setActiveHref(matching.href);
+          }
+        } else {
+          setActiveHref("/");
+        }
+      }
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [pathname]);
+
+  // Scroll spy on homepage using getBoundingClientRect relative to viewport
+  useEffect(() => {
+    if (pathname !== "/") return;
+
+    const handleScrollSpy = () => {
+      // While programmatic smooth scrolling from a click is in progress, don't overwrite the target
+      if (isClickNavigatingRef.current) {
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          isClickNavigatingRef.current = false;
+        }, 200);
+        return;
+      }
+
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+
+      // 1. Top of page -> Home
+      if (scrollY < 200) {
+        setActiveHref("/");
+        return;
+      }
+
+      // 2. Bottom of page -> Support
+      if (windowHeight + scrollY >= documentHeight - 60) {
+        setActiveHref("/#support");
+        return;
+      }
+
+      // 3. Check section positions relative to viewport
+      const sections = [
+        { id: "support", href: "/#support" },
+        { id: "faq", href: "/#faq" },
+        { id: "how-it-works", href: "/#how-it-works" },
+      ];
+
+      for (const section of sections) {
+        const el = document.getElementById(section.id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          // Active when the section top has scrolled near the header and its bottom is still visible
+          if (rect.top <= 200 && rect.bottom > 80) {
+            setActiveHref(section.href);
+            return;
+          }
+        }
+      }
+
+      // 4. If scrolled past how-it-works but not yet reached FAQ (features, stats, repayment, eligibility)
+      const howItWorksEl = document.getElementById("how-it-works");
+      const faqEl = document.getElementById("faq");
+      if (howItWorksEl && faqEl) {
+        const howItWorksRect = howItWorksEl.getBoundingClientRect();
+        const faqRect = faqEl.getBoundingClientRect();
+        if (howItWorksRect.top <= 200 && faqRect.top > 200) {
+          setActiveHref("/#how-it-works");
+          return;
+        }
+      }
+
+      setActiveHref("/");
+    };
+
+    window.addEventListener("scroll", handleScrollSpy, { passive: true });
+    handleScrollSpy();
+
+    return () => window.removeEventListener("scroll", handleScrollSpy);
+  }, [pathname]);
+
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    item: { label: string; href: string }
+  ) => {
+    setIsMenuOpen(false);
+
+    // Smooth scroll to section if clicking on a homepage section anchor while on homepage
+    if (pathname === "/" && item.href.startsWith("/#")) {
+      e.preventDefault();
+      const targetId = item.href.replace("/#", "");
+      const targetEl = document.getElementById(targetId);
+
+      setActiveHref(item.href);
+      isClickNavigatingRef.current = true;
+
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth" });
+        window.history.pushState(null, "", item.href);
+      }
+
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        isClickNavigatingRef.current = false;
+      }, 1200);
+      return;
+    }
+
+    // Scroll to top if clicking Home while already on homepage
+    if (pathname === "/" && item.href === "/") {
+      e.preventDefault();
+      setActiveHref("/");
+      isClickNavigatingRef.current = true;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.history.pushState(null, "", "/");
+
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        isClickNavigatingRef.current = false;
+      }, 1200);
+      return;
+    }
+
+    // Normal page transition
+    setActiveHref(item.href);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -70,7 +263,24 @@ export default function Navbar() {
       <Container>
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center group shrink-0">
+          <Link
+            href="/"
+            onClick={(e) => {
+              if (pathname === "/") {
+                e.preventDefault();
+                setActiveHref("/");
+                isClickNavigatingRef.current = true;
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                window.history.pushState(null, "", "/");
+                setTimeout(() => {
+                  isClickNavigatingRef.current = false;
+                }, 800);
+              } else {
+                setActiveHref("/");
+              }
+            }}
+            className="flex items-center group shrink-0 cursor-pointer"
+          >
             <Image
               src={logoImg}
               alt="Loan Logo"
@@ -82,25 +292,22 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6 lg:gap-8">
             {mainNavigation.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = activeHref === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={(e) => handleNavClick(e, item)}
                   className={cn(
-                    "relative py-1.5 text-sm font-semibold transition-colors duration-250",
+                    "relative py-1.5 text-sm font-semibold transition-colors duration-200 cursor-pointer",
                     isActive ? "text-white" : "text-white/80 hover:text-white"
                   )}
                 >
                   <span>{item.label}</span>
                   {isActive && (
-                    <motion.div
-                      layoutId="activeNavbarTab"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />
                   )}
                 </Link>
               );
@@ -150,7 +357,10 @@ export default function Navbar() {
                         );
                       })}
                       <div className="border-t border-gray-100 my-1" />
-                      <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      >
                         <LogOut className="w-4 h-4" />
                         <span className="font-medium">Logout</span>
                       </button>
@@ -199,13 +409,14 @@ export default function Navbar() {
               </div>
 
               {mainNavigation.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = activeHref === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={(e) => handleNavClick(e, item)}
                     className={cn(
-                      "text-base font-semibold transition-all p-3 rounded-lg",
+                      "text-base font-semibold transition-all p-3 rounded-lg cursor-pointer",
                       isActive
                         ? "text-white bg-white/10"
                         : "text-white/70 hover:text-white hover:bg-white/5"
@@ -229,6 +440,13 @@ export default function Navbar() {
                     </Link>
                   );
                 })}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 p-3 text-red-300 hover:text-red-200 hover:bg-white/5 rounded-lg transition-colors font-semibold text-left w-full cursor-pointer"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Logout</span>
+                </button>
               </div>
             </Container>
           </motion.div>

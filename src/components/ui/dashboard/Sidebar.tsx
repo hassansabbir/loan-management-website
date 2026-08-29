@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Wallet,
@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import { storage } from "@/lib";
 
 const menuItems = [
   { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
@@ -23,6 +24,17 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    try {
+      storage.local.clear();
+      storage.session.clear();
+    } catch (e) {
+      console.error("Failed to clear storage on logout:", e);
+    }
+    router.push("/sign-in");
+  };
 
   return (
     <aside className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 z-40">
@@ -77,7 +89,10 @@ export default function Sidebar() {
 
       {/* Footer Area */}
       <div className="p-4 border-t border-gray-100">
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-red-200 rounded-xl text-red-600 font-semibold hover:bg-red-50 transition-colors mb-4">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-red-200 rounded-xl text-red-600 font-semibold hover:bg-red-50 hover:border-red-300 transition-colors mb-4 cursor-pointer"
+        >
           <LogOut className="w-5 h-5" />
           <span>Logout</span>
         </button>

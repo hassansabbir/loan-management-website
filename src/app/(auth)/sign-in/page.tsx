@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AuthToggle from "@/components/ui/auth/AuthToggle";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 
 export default function SignInPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push("/dashboard");
+  };
 
   return (
     <div className="w-full">
@@ -16,7 +23,7 @@ export default function SignInPage() {
         Enter your business credentials to access your dashboard.
       </h2>
 
-      <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+      <form className="space-y-5" onSubmit={handleSubmit}>
         {/* Business Email */}
         <div className="space-y-2">
           <label className="block text-[13px] font-semibold text-gray-700 uppercase tracking-wide">
@@ -90,7 +97,7 @@ export default function SignInPage() {
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+          className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
         >
           <span>Sign In to Dashboard</span>
           <svg

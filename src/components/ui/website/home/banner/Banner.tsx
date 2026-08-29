@@ -65,17 +65,17 @@ const Banner = () => {
             transition={{ duration: 0.5, delay: 0.15 }}
             className="mt-3 flex flex-col items-start leading-[0.92] tracking-wide"
           >
-            <span 
+            <span
               className="font-serif font-normal text-6xl sm:text-7xl lg:text-[5.5rem] text-primary uppercase tracking-[0.15em] drop-shadow-[0_4px_12px_rgba(0,71,207,0.15)]"
             >
               REPAY
             </span>
-            <span 
+            <span
               className="font-serif font-normal text-4xl sm:text-5xl lg:text-[4.5rem] text-primary italic lowercase pl-2 -my-2.5 drop-shadow-[0_4px_12px_rgba(0,71,207,0.12)]"
             >
               as
             </span>
-            <span 
+            <span
               className="font-serif font-normal text-6xl sm:text-7xl lg:text-[5.5rem] text-primary uppercase tracking-[0.05em] drop-shadow-[0_4px_12px_rgba(0,71,207,0.15)]"
             >
               YOU GROW
@@ -88,7 +88,7 @@ const Banner = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
           >
             <p className="mt-5 text-base sm:text-lg text-gray-600 max-w-xl leading-relaxed">
-              Access up to £1M in revenue-based funding. No equity
+              Access up to 150000 GBP in revenue-based funding. No equity
               dilution, no personal guarantees. Repayments fluctuate
               automatically with your sales.
             </p>
@@ -113,15 +113,15 @@ const Banner = () => {
           </motion.div>
 
           {/* Social Proof Partners */}
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
             className="mt-8 flex items-center gap-4 border-t border-gray-100 pt-6 w-full"
           >
-            {/* Overlapping circular partner badges */}
+            
             <div className="flex items-center shrink-0">
-              {/* Huawei badge */}
+            
               <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-[0_4px_10px_rgba(0,0,0,0.06)] border-2 border-white z-10 relative overflow-hidden">
                 <svg className="w-7 h-7 text-[#EA0A2A]" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C8.5 6 6 9.5 6 12s2.5 4.5 6 4.5 6-2 6-4.5-2.5-6-6-10z" opacity="0.8" />
@@ -132,7 +132,7 @@ const Banner = () => {
                 </svg>
               </div>
 
-              {/* Beats/Red circle badge */}
+              
               <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-[0_4px_10px_rgba(0,0,0,0.06)] border-2 border-white z-20 -ml-3.5 relative overflow-hidden">
                 <svg className="w-12 h-12" viewBox="0 0 100 100" fill="none">
                   <circle cx="50" cy="50" r="48" fill="#E41F26" />
@@ -141,7 +141,7 @@ const Banner = () => {
                 </svg>
               </div>
 
-              {/* Dell badge */}
+              
               <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-[0_4px_10px_rgba(0,0,0,0.06)] border-2 border-white z-30 -ml-3.5 relative overflow-hidden">
                 <svg className="w-12 h-12 text-white" viewBox="0 0 100 100" fill="none">
                   <circle cx="50" cy="50" r="48" fill="black" />
@@ -158,12 +158,12 @@ const Banner = () => {
               </div>
             </div>
 
-            {/* Label text */}
+
             <div className="text-[15px] text-gray-500 font-medium tracking-tight">
               <span className="font-bold text-gray-900 mr-1">2,500+</span>
               UK businesses funded this year
             </div>
-          </motion.div>
+          </motion.div> */}
         </div>
 
         {/* Right Column - Overlapping Images (Larger size to fill screen) */}

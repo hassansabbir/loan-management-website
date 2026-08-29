@@ -26,9 +26,9 @@ export default function AboutUsPage() {
         <CoreValues />
 
         {/* Meet the Leadership profiles */}
-        <Leadership />
+        {/* <Leadership /> */}
       </Container>
-      
+
       {/* Footer CTA Section */}
       <CTA />
     </div>
