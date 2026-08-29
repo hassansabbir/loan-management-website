@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   TrendingUp,
   Landmark,
@@ -13,147 +13,171 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  ArrowUpRight,
-  ArrowDownLeft,
   CheckCircle2,
   Clock3,
+  Loader2,
 } from "lucide-react";
-
-interface Transaction {
-  id: string;
-  date: string;
-  time: string;
-  grossSales: string;
-  grossValue: number;
-  repayment: string;
-  repaymentValue: number;
-  netPayout: string;
-  netValue: number;
-  status: "Completed" | "Pending";
-  category: string;
-  reference: string;
-}
-
-const mockTransactions: Transaction[] = [
-  {
-    id: "TXN-9842-AB",
-    date: "Oct 24, 2024",
-    time: "14:22:10 GMT",
-    grossSales: "£4,250.00",
-    grossValue: 4250.0,
-    repayment: "-£425.00",
-    repaymentValue: 425.0,
-    netPayout: "£3,825.00",
-    netValue: 3825.0,
-    status: "Completed",
-    category: "Card Terminal Sales",
-    reference: "REF-88491-01",
-  },
-  {
-    id: "TXN-9841-LM",
-    date: "Oct 24, 2024",
-    time: "11:05:45 GMT",
-    grossSales: "£12,040.00",
-    grossValue: 12040.0,
-    repayment: "-£1,204.00",
-    repaymentValue: 1204.0,
-    netPayout: "£10,836.00",
-    netValue: 10836.0,
-    status: "Pending",
-    category: "E-Commerce Checkout",
-    reference: "REF-88490-02",
-  },
-  {
-    id: "TXN-9839-XP",
-    date: "Oct 23, 2024",
-    time: "16:45:00 GMT",
-    grossSales: "£890.50",
-    grossValue: 890.5,
-    repayment: "-£89.05",
-    repaymentValue: 89.05,
-    netPayout: "£801.45",
-    netValue: 801.45,
-    status: "Completed",
-    category: "POS Terminal",
-    reference: "REF-88488-05",
-  },
-  {
-    id: "TXN-9835-KK",
-    date: "Oct 23, 2024",
-    time: "09:12:33 GMT",
-    grossSales: "£2,450.00",
-    grossValue: 2450.0,
-    repayment: "-£245.00",
-    repaymentValue: 245.0,
-    netPayout: "£2,205.00",
-    netValue: 2205.0,
-    status: "Completed",
-    category: "Direct Payment",
-    reference: "REF-88484-12",
-  },
-  {
-    id: "TXN-9832-WW",
-    date: "Oct 22, 2024",
-    time: "18:01:10 GMT",
-    grossSales: "£675.25",
-    grossValue: 675.25,
-    repayment: "-£67.53",
-    repaymentValue: 67.53,
-    netPayout: "£607.72",
-    netValue: 607.72,
-    status: "Completed",
-    category: "Card Terminal Sales",
-    reference: "REF-88481-09",
-  },
-  {
-    id: "TXN-9830-ZZ",
-    date: "Oct 22, 2024",
-    time: "13:44:21 GMT",
-    grossSales: "£15,000.00",
-    grossValue: 15000.0,
-    repayment: "-£1,500.00",
-    repaymentValue: 1500.0,
-    netPayout: "£13,500.00",
-    netValue: 13500.0,
-    status: "Completed",
-    category: "BACS Transfer",
-    reference: "REF-88479-14",
-  },
-];
+import dashboardService, {
+  TransactionCardsData,
+  ClientTransactionItem,
+  ClientTransactionMeta,
+} from "@/lib/dashboardService";
 
 export default function TransactionsPage() {
+  const [cards, setCards] = useState<TransactionCardsData | null>(null);
+  const [transactions, setTransactions] = useState<ClientTransactionItem[]>([]);
+  const [meta, setMeta] = useState<ClientTransactionMeta | null>(null);
+  const [isLoadingCards, setIsLoadingCards] = useState<boolean>(true);
+  const [isLoadingList, setIsLoadingList] = useState<boolean>(false);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | "Completed" | "Pending">("All");
   const [dateFilter, setDateFilter] = useState("Last 30 Days");
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
+  const [selectedTxn, setSelectedTxn] = useState<ClientTransactionItem | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const limit = 15;
 
-  const filteredTransactions = useMemo(() => {
-    return mockTransactions.filter((tx) => {
-      const matchesSearch =
-        tx.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.date.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.grossSales.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.category.toLowerCase().includes(searchQuery.toLowerCase());
+  // 1. Fetch Transaction Cards on Mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCards = async () => {
+      setIsLoadingCards(true);
+      try {
+        const res = await dashboardService.getTransactionCards();
+        if (isMounted && res && res.data) {
+          setCards(res.data);
+        }
+      } catch (err) {
+        console.warn("Could not fetch transaction cards:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoadingCards(false);
+        }
+      }
+    };
 
-      const matchesStatus =
-        statusFilter === "All" || tx.status === statusFilter;
+    fetchCards();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-      return matchesSearch && matchesStatus;
+  // 2. Fetch Transactions List on Page/Status/Search Change
+  useEffect(() => {
+    let isMounted = true;
+    const fetchList = async () => {
+      setIsLoadingList(true);
+      try {
+        const res = await dashboardService.getClientTransactions({
+          page,
+          limit,
+          status: statusFilter,
+          searchTerm: searchQuery.trim() || undefined,
+        });
+
+        if (isMounted && res) {
+          if (Array.isArray(res.data)) {
+            setTransactions(res.data);
+          }
+          if (res.meta) {
+            setMeta(res.meta);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch client transactions:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoadingList(false);
+        }
+      }
+    };
+
+    fetchList();
+    return () => {
+      isMounted = false;
+    };
+  }, [page, statusFilter, searchQuery]);
+
+  const formatCurrency = (
+    val: number | string | undefined | null,
+    fallback: number = 0
+  ): string => {
+    const num =
+      typeof val === "number"
+        ? val
+        : typeof val === "string"
+        ? parseFloat(val)
+        : fallback;
+    if (isNaN(num)) return "£0.00";
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+      minimumFractionDigits: num % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return { date: "—", time: "" };
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return { date: dateStr, time: "" };
+      return {
+        date: d.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+        time: d.toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          timeZoneName: "short",
+        }),
+      };
+    } catch {
+      return { date: dateStr, time: "" };
+    }
+  };
+
+  // Client-side fallback search filter
+  const displayedTransactions = useMemo(() => {
+    if (!searchQuery) return transactions;
+    const lower = searchQuery.toLowerCase();
+    return transactions.filter((tx) => {
+      const idStr = (tx.transactionId || tx.id || tx._id || "").toLowerCase();
+      const statusStr = (tx.status || "").toLowerCase();
+      const { date, time } = formatDate(tx.createdAt || tx.date);
+      return (
+        idStr.includes(lower) ||
+        statusStr.includes(lower) ||
+        date.toLowerCase().includes(lower) ||
+        time.toLowerCase().includes(lower)
+      );
     });
-  }, [searchQuery, statusFilter]);
+  }, [transactions, searchQuery]);
 
   return (
     <div className="w-full flex flex-col gap-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
-          Transactions & Sales
-        </h1>
-        <p className="text-sm text-slate-500 font-normal mt-1">
-          Review your automated repayment history and daily sales performance.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
+            Transactions & Sales
+          </h1>
+          <p className="text-sm text-slate-500 font-normal mt-1">
+            Review your automated repayment history and daily sales performance.
+          </p>
+        </div>
+
+        {isLoadingCards && (
+          <div className="flex items-center gap-2 text-xs font-semibold text-primary bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 self-start sm:self-auto">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span>Loading metrics...</span>
+          </div>
+        )}
       </div>
 
       {/* Top 4 Stats Cards */}
@@ -168,7 +192,7 @@ export default function TransactionsPage() {
               Total Processed Sales
             </p>
             <h2 className="text-2xl font-bold text-[#0F172A] mt-1">
-              £1,248,500.00
+              {formatCurrency(cards?.totalProcessedSales)}
             </h2>
           </div>
         </div>
@@ -183,7 +207,7 @@ export default function TransactionsPage() {
               Total Repaid to Date
             </p>
             <h2 className="text-2xl font-bold text-[#0F172A] mt-1">
-              £482,300.12
+              {formatCurrency(cards?.totalRepaidToDate)}
             </h2>
           </div>
         </div>
@@ -198,7 +222,7 @@ export default function TransactionsPage() {
               Daily Repayment Avg
             </p>
             <h2 className="text-2xl font-bold text-[#0F172A] mt-1">
-              £1,420.50
+              {formatCurrency(cards?.dailyRepaymentAvg)}
             </h2>
           </div>
         </div>
@@ -213,7 +237,7 @@ export default function TransactionsPage() {
               Pending Settlements
             </p>
             <h2 className="text-2xl font-bold text-[#0F172A] mt-1">
-              £12,402.10
+              {formatCurrency(cards?.pendingSettlements)}
             </h2>
           </div>
         </div>
@@ -223,9 +247,14 @@ export default function TransactionsPage() {
       <div className="bg-white rounded-2xl border border-slate-200/70 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
         {/* Header bar with title and action buttons */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 gap-4 border-b border-slate-100">
-          <h2 className="text-xl font-bold text-[#0F172A]">
-            Transactions History
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-[#0F172A]">
+              Transactions History
+            </h2>
+            {isLoadingList && (
+              <Loader2 className="w-4 h-4 animate-spin text-[#2563EB]" />
+            )}
+          </div>
 
           <div className="flex items-center gap-3">
             {/* Date filter dropdown */}
@@ -235,7 +264,7 @@ export default function TransactionsPage() {
                   setIsDateDropdownOpen(!isDateDropdownOpen);
                   setIsStatusDropdownOpen(false);
                 }}
-                className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <Calendar className="w-4 h-4 text-slate-400" />
                 <span>{dateFilter}</span>
@@ -252,7 +281,7 @@ export default function TransactionsPage() {
                           setDateFilter(option);
                           setIsDateDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                           dateFilter === option
                             ? "bg-blue-50 text-[#2563EB]"
                             : "text-slate-700 hover:bg-slate-50"
@@ -273,7 +302,7 @@ export default function TransactionsPage() {
                   setIsStatusDropdownOpen(!isStatusDropdownOpen);
                   setIsDateDropdownOpen(false);
                 }}
-                className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <Filter className="w-4 h-4 text-slate-400" />
                 <span>Status: {statusFilter}</span>
@@ -287,9 +316,10 @@ export default function TransactionsPage() {
                       key={status}
                       onClick={() => {
                         setStatusFilter(status);
+                        setPage(1);
                         setIsStatusDropdownOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                      className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                         statusFilter === status
                           ? "bg-blue-50 text-[#2563EB]"
                           : "text-slate-700 hover:bg-slate-50"
@@ -311,7 +341,10 @@ export default function TransactionsPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
               placeholder="Search..."
               className="w-full bg-[#F1F5F9]/80 border border-transparent focus:border-blue-500 rounded-full pl-11 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all"
             />
@@ -344,64 +377,77 @@ export default function TransactionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredTransactions.map((tx) => (
-                <tr
-                  key={tx.id}
-                  onClick={() => setSelectedTxn(tx)}
-                  className="hover:bg-slate-50/70 transition-colors cursor-pointer"
-                >
-                  {/* Transaction ID */}
-                  <td className="py-4 px-6 text-sm font-semibold text-[#2563EB]">
-                    {tx.id}
-                  </td>
+              {displayedTransactions.map((tx, idx) => {
+                const txId = tx.transactionId || tx.id || tx._id || `#TXN-${idx + 1}`;
+                const { date, time } = formatDate(tx.createdAt || tx.date);
+                const isCompleted = tx.status?.toLowerCase() === "completed";
+                const isPending = tx.status?.toLowerCase() === "pending";
 
-                  {/* Date & Time */}
-                  <td className="py-4 px-6">
-                    <p className="text-sm font-bold text-[#0F172A]">
-                      {tx.date}
-                    </p>
-                    <p className="text-xs text-slate-400 font-normal mt-0.5">
-                      {tx.time}
-                    </p>
-                  </td>
+                return (
+                  <tr
+                    key={txId || idx}
+                    onClick={() => setSelectedTxn(tx)}
+                    className="hover:bg-slate-50/70 transition-colors cursor-pointer"
+                  >
+                    {/* Transaction ID */}
+                    <td className="py-4 px-6 text-sm font-semibold text-[#2563EB] font-mono">
+                      {txId}
+                    </td>
 
-                  {/* Gross Sales */}
-                  <td className="py-4 px-6 text-sm font-bold text-[#0F172A] text-right sm:text-left">
-                    {tx.grossSales}
-                  </td>
+                    {/* Date & Time */}
+                    <td className="py-4 px-6">
+                      <p className="text-sm font-bold text-[#0F172A]">
+                        {date}
+                      </p>
+                      <p className="text-xs text-slate-400 font-normal mt-0.5">
+                        {time}
+                      </p>
+                    </td>
 
-                  {/* Repayment */}
-                  <td className="py-4 px-6 text-sm font-semibold text-[#EF4444] text-right">
-                    {tx.repayment}
-                  </td>
+                    {/* Gross Sales */}
+                    <td className="py-4 px-6 text-sm font-bold text-[#0F172A] text-right sm:text-left">
+                      {formatCurrency(tx.grossSales)}
+                    </td>
 
-                  {/* Net Payout */}
-                  <td className="py-4 px-6 text-sm font-bold text-[#0F172A] text-right">
-                    {tx.netPayout}
-                  </td>
+                    {/* Repayment */}
+                    <td className="py-4 px-6 text-sm font-semibold text-[#EF4444] text-right">
+                      -{formatCurrency(tx.repayment)}
+                    </td>
 
-                  {/* Status */}
-                  <td className="py-4 px-6 text-right">
-                    {tx.status === "Completed" ? (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#10B981] border border-emerald-200/50">
-                        Completed
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#F59E0B] border border-amber-200/50">
-                        Pending
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    {/* Net Payout */}
+                    <td className="py-4 px-6 text-sm font-bold text-[#0F172A] text-right">
+                      {formatCurrency(tx.netPayout)}
+                    </td>
 
-              {filteredTransactions.length === 0 && (
+                    {/* Status */}
+                    <td className="py-4 px-6 text-right">
+                      {isCompleted ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#10B981] border border-emerald-200/50">
+                          Completed
+                        </span>
+                      ) : isPending ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#F59E0B] border border-amber-200/50">
+                          Pending
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                          {tx.status || "Completed"}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {displayedTransactions.length === 0 && (
                 <tr>
                   <td
                     colSpan={6}
                     className="py-12 text-center text-slate-400 text-sm font-medium"
                   >
-                    No transactions match your search or filter.
+                    {isLoadingList
+                      ? "Loading transactions..."
+                      : "No transactions match your search or filter."}
                   </td>
                 </tr>
               )}
@@ -412,14 +458,34 @@ export default function TransactionsPage() {
         {/* Footer Pagination */}
         <div className="flex items-center justify-between p-6 border-t border-slate-100">
           <span className="text-sm font-medium text-slate-500">
-            Showing {filteredTransactions.length} of 124 repayments
+            {meta?.total !== undefined && meta.total > 0
+              ? `Showing ${(page - 1) * limit + 1} to ${Math.min(
+                  page * limit,
+                  meta.total
+                )} of ${meta.total} repayments`
+              : `Showing ${displayedTransactions.length} repayments`}
           </span>
 
           <div className="flex items-center gap-2">
-            <button className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+            <span className="text-xs font-bold text-gray-600 px-2">
+              Page {page} {meta?.totalPage ? `of ${meta.totalPage}` : ""}
+            </span>
+            <button
+              onClick={() =>
+                setPage((p) =>
+                  meta?.totalPage ? Math.min(meta.totalPage, p + 1) : p + 1
+                )
+              }
+              disabled={meta?.totalPage !== undefined && page >= meta.totalPage}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -435,13 +501,15 @@ export default function TransactionsPage() {
                 <span className="text-xs font-bold text-[#2563EB] uppercase tracking-wider">
                   Transaction Details
                 </span>
-                <h3 className="text-xl font-bold text-[#0F172A]">
-                  {selectedTxn.id}
+                <h3 className="text-xl font-bold text-[#0F172A] font-mono">
+                  {selectedTxn.transactionId ||
+                    selectedTxn.id ||
+                    selectedTxn._id}
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedTxn(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -449,8 +517,10 @@ export default function TransactionsPage() {
 
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl">
-                <span className="text-xs font-medium text-slate-500">Status</span>
-                {selectedTxn.status === "Completed" ? (
+                <span className="text-xs font-medium text-slate-500">
+                  Status
+                </span>
+                {selectedTxn.status?.toLowerCase() === "completed" ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#ECFDF5] text-[#10B981]">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     Completed
@@ -458,25 +528,31 @@ export default function TransactionsPage() {
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#F59E0B]">
                     <Clock3 className="w-3.5 h-3.5" />
-                    Pending
+                    {selectedTxn.status || "Pending"}
                   </span>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3.5 border border-slate-100 rounded-xl">
-                  <p className="text-xs font-medium text-slate-400">Date & Time</p>
-                  <p className="text-sm font-bold text-slate-900 mt-1">
-                    {selectedTxn.date}
+                  <p className="text-xs font-medium text-slate-400">
+                    Date & Time
                   </p>
-                  <p className="text-xs text-slate-400">{selectedTxn.time}</p>
+                  <p className="text-sm font-bold text-slate-900 mt-1">
+                    {formatDate(selectedTxn.createdAt || selectedTxn.date).date}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {formatDate(selectedTxn.createdAt || selectedTxn.date).time}
+                  </p>
                 </div>
                 <div className="p-3.5 border border-slate-100 rounded-xl">
                   <p className="text-xs font-medium text-slate-400">Channel</p>
                   <p className="text-sm font-bold text-slate-900 mt-1">
-                    {selectedTxn.category}
+                    {selectedTxn.category || "Sales Revenue"}
                   </p>
-                  <p className="text-xs text-slate-400">{selectedTxn.reference}</p>
+                  <p className="text-xs text-slate-400">
+                    {selectedTxn.reference || "Automated Split"}
+                  </p>
                 </div>
               </div>
 
@@ -484,19 +560,19 @@ export default function TransactionsPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Gross Sales</span>
                   <span className="font-bold text-slate-900">
-                    {selectedTxn.grossSales}
+                    {formatCurrency(selectedTxn.grossSales)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Automated Repayment (10%)</span>
+                  <span className="text-slate-500">Automated Repayment</span>
                   <span className="font-semibold text-red-500">
-                    {selectedTxn.repayment}
+                    -{formatCurrency(selectedTxn.repayment)}
                   </span>
                 </div>
                 <div className="pt-2.5 border-t border-slate-200 flex justify-between text-base font-bold">
                   <span className="text-slate-900">Net Payout</span>
                   <span className="text-[#2563EB]">
-                    {selectedTxn.netPayout}
+                    {formatCurrency(selectedTxn.netPayout)}
                   </span>
                 </div>
               </div>
@@ -505,7 +581,7 @@ export default function TransactionsPage() {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setSelectedTxn(null)}
-                className="w-full py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors shadow-sm"
+                className="w-full py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors shadow-sm cursor-pointer"
               >
                 Close
               </button>

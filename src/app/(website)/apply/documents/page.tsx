@@ -2,33 +2,54 @@
 
 import React, { useState, useRef } from "react";
 import { useApply } from "../ApplyContext";
-import { ArrowLeft, ArrowRight, UploadCloud, FileText, CheckCircle2, Trash2, Loader2, Landmark, Contact } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  UploadCloud,
+  FileText,
+  CheckCircle2,
+  Trash2,
+  Loader2,
+  Landmark,
+  Contact,
+} from "lucide-react";
 
 interface UploadCardProps {
   id: string;
   label: string;
   subtext: string;
   badgeText: string;
-  badgeStyle: string; // e.g. "bg-slate-100 text-slate-500" or "bg-amber-50 text-amber-600"
+  badgeStyle: string;
   hintText: string;
   value: string;
-  onChange: (fileName: string) => void;
+  onChange: (fileName: string, file: File | null) => void;
   error?: string;
   icon: React.ComponentType<any>;
 }
 
-function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value, onChange, error, icon: IconComponent }: UploadCardProps) {
+function UploadCard({
+  id,
+  label,
+  subtext,
+  badgeText,
+  badgeStyle,
+  hintText,
+  value,
+  onChange,
+  error,
+  icon: IconComponent,
+}: UploadCardProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const simulateUpload = (fileName: string) => {
+  const simulateUpload = (file: File) => {
     setIsUploading(true);
     setProgress(0);
-    
-    const duration = 1500; // 1.5 seconds simulated upload
-    const steps = 10;
+
+    const duration = 600;
+    const steps = 6;
     const intervalTime = duration / steps;
     let currentStep = 0;
 
@@ -40,7 +61,7 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
       if (currentStep >= steps) {
         clearInterval(timer);
         setIsUploading(false);
-        onChange(fileName);
+        onChange(file.name, file);
       }
     }, intervalTime);
   };
@@ -48,7 +69,7 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      simulateUpload(file.name);
+      simulateUpload(file);
     }
   };
 
@@ -69,12 +90,12 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
 
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      simulateUpload(file.name);
+      simulateUpload(file);
     }
   };
 
   const handleRemove = () => {
-    onChange("");
+    onChange("", null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -82,7 +103,6 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
 
   return (
     <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.015)] flex flex-col justify-between min-h-[300px]">
-      
       {/* Header Info */}
       <div>
         <div className="flex items-start justify-between gap-4">
@@ -94,7 +114,9 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
               {subtext}
             </p>
           </div>
-          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0 select-none ${badgeStyle}`}>
+          <span
+            className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0 select-none ${badgeStyle}`}
+          >
             {badgeText}
           </span>
         </div>
@@ -108,8 +130,8 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
         onDrop={handleDrop}
         onClick={() => !value && !isUploading && fileInputRef.current?.click()}
         className={`relative border-2 border-dashed rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center text-center cursor-pointer mt-5 flex-1 min-h-[140px] ${
-          value 
-            ? "border-emerald-200 bg-emerald-50/10" 
+          value
+            ? "border-emerald-200 bg-emerald-50/10"
             : isUploading
             ? "border-blue-200 bg-blue-50/10 cursor-wait"
             : dragActive
@@ -165,8 +187,8 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
               Uploading document...
             </p>
             <div className="w-40 bg-slate-100 h-1 rounded-full overflow-hidden mt-3">
-              <div 
-                className="bg-primary h-full rounded-full transition-all duration-150 ease-out" 
+              <div
+                className="bg-primary h-full rounded-full transition-all duration-150 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -181,7 +203,10 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
               <IconComponent className="w-5.5 h-5.5 stroke-[1.8px]" />
             </div>
             <p className="text-xs font-bold text-slate-800">
-              <span className="text-primary hover:underline font-extrabold">Click to upload</span> or drag and drop
+              <span className="text-primary hover:underline font-extrabold">
+                Click to upload
+              </span>{" "}
+              or drag and drop
             </p>
             <p className="text-[10px] font-bold text-slate-400 mt-2 tracking-wider">
               {hintText}
@@ -189,7 +214,7 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
           </div>
         )}
       </div>
-      
+
       {error && !value && !isUploading && (
         <p className="mt-2 text-[10px] font-bold text-destructive">{error}</p>
       )}
@@ -197,19 +222,60 @@ function UploadCard({ id, label, subtext, badgeText, badgeStyle, hintText, value
   );
 }
 
+import { useAuth } from "@/contexts/AuthContext";
+import loanService from "@/lib/loanService";
+import { toast } from "sonner";
+
 export default function DocumentsStep() {
-  const { data, updateData, goToNextStep, goToPrevStep } = useApply();
+  const { data, files, updateData, setFile, goToNextStep, goToPrevStep, setSubmittedAppId } = useApply();
+  const { isAuthenticated } = useAuth();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validate = () => {
-    // Paused validation for development
-    return true;
-  };
-
-  const handleContinue = (e: React.FormEvent) => {
+  const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      goToNextStep();
+
+    if (!isAuthenticated) {
+      toast.error("Please sign in first to submit your loan application documents.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await loanService.createApplication(data, files);
+      if (res && (res.success || res.statusCode === 200 || res.statusCode === 201)) {
+        if (res.data?._id) {
+          setSubmittedAppId(res.data._id);
+        }
+        toast.success("Documents & draft application uploaded successfully!");
+        goToNextStep();
+      } else {
+        throw new Error(res.message || "Failed to create application draft");
+      }
+    } catch (err: any) {
+      console.error("Documents step POST error:", err);
+      const errMsg =
+        err?.data?.error?.[0]?.message ||
+        err?.data?.errorMessages?.[0]?.message ||
+        err?.data?.message ||
+        err?.message ||
+        "Failed to upload documents and create application.";
+
+      // If user already has an active loan/application in progress, inform user and route to review
+      if (
+        errMsg.toLowerCase().includes("already have an active") ||
+        errMsg.toLowerCase().includes("in progress")
+      ) {
+        toast.info(errMsg, {
+          description: "Loading your existing application review...",
+          duration: 5000,
+        });
+        goToNextStep();
+      } else {
+        toast.error(errMsg);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -227,7 +293,6 @@ export default function DocumentsStep() {
 
       {/* 2x2 Grid of Upload Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-        
         {/* Card 1: Certificate of Incorporation */}
         <UploadCard
           id="docRegistration"
@@ -237,9 +302,11 @@ export default function DocumentsStep() {
           badgeStyle="bg-slate-100 text-slate-500"
           hintText="PDF, JPG OR PNG (MAX. 10MB)"
           value={data.docRegistration}
-          onChange={(fileName) => {
+          onChange={(fileName, file) => {
             updateData({ docRegistration: fileName });
-            if (errors.docRegistration) setErrors(prev => ({ ...prev, docRegistration: "" }));
+            setFile("certificateOfIncorporation", file);
+            if (errors.docRegistration)
+              setErrors((prev) => ({ ...prev, docRegistration: "" }));
           }}
           error={errors.docRegistration}
           icon={UploadCloud}
@@ -254,9 +321,11 @@ export default function DocumentsStep() {
           badgeStyle="bg-slate-100 text-slate-500"
           hintText="CLEAR COLOR SCAN PREFERRED"
           value={data.docPhotoId}
-          onChange={(fileName) => {
+          onChange={(fileName, file) => {
             updateData({ docPhotoId: fileName });
-            if (errors.docPhotoId) setErrors(prev => ({ ...prev, docPhotoId: "" }));
+            setFile("ownersPhotoId", file);
+            if (errors.docPhotoId)
+              setErrors((prev) => ({ ...prev, docPhotoId: "" }));
           }}
           error={errors.docPhotoId}
           icon={Contact}
@@ -266,14 +335,16 @@ export default function DocumentsStep() {
         <UploadCard
           id="docBankStatements"
           label="Last 3 Months Bank Statements"
-          subtext="If not connected via Open Banking API."
-          badgeText="Manual Upload"
-          badgeStyle="bg-amber-50 text-amber-600 border border-amber-100"
+          subtext="Official monthly business banking records."
+          badgeText="Required"
+          badgeStyle="bg-slate-100 text-slate-500"
           hintText="LATEST STATEMENTS IN PDF FORMAT"
           value={data.docBankStatements}
-          onChange={(fileName) => {
+          onChange={(fileName, file) => {
             updateData({ docBankStatements: fileName });
-            if (errors.docBankStatements) setErrors(prev => ({ ...prev, docBankStatements: "" }));
+            setFile("bankStatements", file);
+            if (errors.docBankStatements)
+              setErrors((prev) => ({ ...prev, docBankStatements: "" }));
           }}
           error={errors.docBankStatements}
           icon={Landmark}
@@ -288,14 +359,15 @@ export default function DocumentsStep() {
           badgeStyle="bg-slate-100 text-slate-500"
           hintText="OFFICIAL HMRC DOCUMENT"
           value={data.docTaxReturn}
-          onChange={(fileName) => {
+          onChange={(fileName, file) => {
             updateData({ docTaxReturn: fileName });
-            if (errors.docTaxReturn) setErrors(prev => ({ ...prev, docTaxReturn: "" }));
+            setFile("vatReturns", file);
+            if (errors.docTaxReturn)
+              setErrors((prev) => ({ ...prev, docTaxReturn: "" }));
           }}
           error={errors.docTaxReturn}
           icon={FileText}
         />
-
       </div>
 
       {/* Action Footer */}
@@ -315,13 +387,22 @@ export default function DocumentsStep() {
 
         <button
           type="submit"
-          className="bg-primary hover:bg-[#003CB5] text-white font-bold text-sm px-6 py-3.5 rounded-xl inline-flex items-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-97 cursor-pointer w-full sm:w-auto justify-center"
+          disabled={isSubmitting}
+          className="bg-primary hover:bg-[#003CB5] text-white font-bold text-sm px-6 py-3.5 rounded-xl inline-flex items-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-97 disabled:opacity-60 cursor-pointer w-full sm:w-auto justify-center"
         >
-          Continue to Review
-          <ArrowRight className="w-4 h-4" />
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Uploading & Creating Application...</span>
+            </>
+          ) : (
+            <>
+              <span>Continue to Review</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </button>
       </div>
-
     </form>
   );
 }

@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { storage } from "@/lib";
 
+import { useAuth } from "@/contexts/AuthContext";
+
 const menuItems = [
   { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Funding", icon: Wallet, href: "/dashboard/funding" },
@@ -25,15 +27,10 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    try {
-      storage.local.clear();
-      storage.session.clear();
-    } catch (e) {
-      console.error("Failed to clear storage on logout:", e);
-    }
-    router.push("/sign-in");
+    logout();
   };
 
   return (

@@ -15,6 +15,8 @@ const inter = Inter({
   display: "swap",
 });
 
+import Providers from "@/components/providers/Providers";
+
 export const metadata = constructMetadata();
 
 export default function RootLayout({
@@ -28,7 +30,9 @@ export default function RootLayout({
         className={`${poppins.variable} ${inter.variable} font-sans antialiased min-h-screen flex flex-col`}
         suppressHydrationWarning={true}
       >
-        <main className="flex-1">{children}</main>
+        <Providers>
+          <main className="flex-1">{children}</main>
+        </Providers>
       </body>
     </html>
   );

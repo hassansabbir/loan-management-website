@@ -1,42 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Section from "@/components/ui/Section";
 import { ChevronDown } from "lucide-react";
-
-interface FaqItem {
-  question: string;
-  answer: string;
-}
-
-const faqData: FaqItem[] = [
-  {
-    question: "How much can I borrow?",
-    answer:
-      "We offer funding from £10,000 up to £2,000,000 depending on your average monthly revenue and overall financial health. Typically, you can qualify for up to 1-2x your average monthly sales.",
-  },
-  {
-    question: "What are the repayment terms?",
-    answer:
-      "Repayments are flexible and tied to your daily sales. We agree on a fixed percentage (typically between 5% and 15%) of your revenue. There are no fixed monthly payments, interest rates, or late fees.",
-  },
-  {
-    question: "Do I need a personal guarantee?",
-    answer:
-      "No, we do not require personal guarantees or collateral for our standard revenue-based funding. Our model is built on your business's performance, not your personal assets.",
-  },
-];
+import faqService, { FaqItem, fallbackFaqs } from "@/lib/faqService";
 
 export default function Faq() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [faqs, setFaqs] = useState<FaqItem[]>(fallbackFaqs);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchFaqs = async () => {
+      try {
+        const items = await faqService.getPublicFaqs();
+        if (mounted && items.length > 0) {
+          setFaqs(items);
+        }
+      } catch (err) {
+        console.error("Error fetching FAQs:", err);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchFaqs();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const toggleOpen = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
 
   return (
-    <Section id="faq" className="bg-[#F5F8FF] py-20 md:py-24 border-t border-blue-100/30 scroll-mt-20">
+    <Section
+      id="faq"
+      className="bg-[#F5F8FF] py-20 md:py-24 border-t border-blue-100/30 scroll-mt-20"
+    >
       <div className="max-w-4xl mx-auto px-4">
         {/* Section Title */}
         <motion.div
@@ -46,57 +52,81 @@ export default function Faq() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-extrabold text-[#111827] tracking-tight">
+          <span className="text-xs font-bold uppercase tracking-wider text-primary bg-blue-50 px-3 py-1 rounded-full border border-blue-100/50 mb-3 inline-block">
+            Frequently Asked Questions
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-[#111827] tracking-tight mt-1">
             Common Questions
           </h2>
+          <p className="mt-3 text-slate-500 font-medium text-sm md:text-base max-w-xl mx-auto">
+            Everything you need to know about our revenue financing process and terms.
+          </p>
         </motion.div>
 
         {/* FAQ Accordion List */}
         <div className="max-w-3xl mx-auto flex flex-col gap-4">
-          {faqData.map((item, index) => {
-            const isOpen = openIndex === index;
-            return (
-              <motion.div
-                key={item.question}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white border border-blue-100/50 rounded-2xl shadow-[0_2px_12px_rgba(0,71,207,0.015)] overflow-hidden"
-              >
-                <button
-                  onClick={() => toggleOpen(index)}
-                  className="w-full flex items-center justify-between p-6 text-left cursor-pointer focus:outline-none"
+          {isLoading ? (
+            // Skeleton loader
+            <div className="flex flex-col gap-4">
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className="bg-white border border-blue-100/40 rounded-2xl p-6 animate-pulse"
                 >
-                  <span className="text-base sm:text-lg font-bold text-gray-900 pr-4 leading-snug">
-                    {item.question}
-                  </span>
-                  <motion.div
-                    animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="text-gray-400 shrink-0"
+                  <div className="h-5 bg-slate-200 rounded-md w-2/3 mb-2" />
+                  <div className="h-3 bg-slate-100 rounded-md w-full" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            faqs.map((item, index) => {
+              const isOpen = openIndex === index;
+              return (
+                <motion.div
+                  key={item._id || item.question || index}
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  className="bg-white border border-blue-100/60 hover:border-blue-200 rounded-2xl shadow-[0_2px_12px_rgba(0,71,207,0.02)] transition-colors overflow-hidden"
+                >
+                  <button
+                    onClick={() => toggleOpen(index)}
+                    className="w-full flex items-center justify-between p-6 text-left cursor-pointer focus:outline-none"
+                    aria-expanded={isOpen}
                   >
-                    <ChevronDown className="w-5 h-5 stroke-[2.2px]" />
-                  </motion.div>
-                </button>
-
-                <AnimatePresence initial={false}>
-                  {isOpen && (
+                    <span className="text-base sm:text-lg font-bold text-gray-900 pr-4 leading-snug">
+                      {item.question}
+                    </span>
                     <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      animate={{ rotate: isOpen ? 180 : 0 }}
+                      transition={{ duration: 0.25 }}
+                      className={`shrink-0 transition-colors ${
+                        isOpen ? "text-primary" : "text-gray-400"
+                      }`}
                     >
-                      <div className="px-6 pb-6 text-sm sm:text-base text-gray-500 leading-relaxed font-normal border-t border-gray-50/50 pt-2">
-                        {item.answer}
-                      </div>
+                      <ChevronDown className="w-5 h-5 stroke-[2.2px]" />
                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                      >
+                        <div className="px-6 pb-6 text-sm sm:text-base text-gray-600 leading-relaxed font-normal border-t border-gray-50/80 pt-3">
+                          {item.answer}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })
+          )}
         </div>
       </div>
     </Section>

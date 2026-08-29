@@ -15,11 +15,13 @@ import {
   Landmark,
   Settings,
   LogOut,
+  LogIn,
 } from "lucide-react";
 import { mainNavigation } from "@/constants/navigation";
 import Container from "@/components/ui/Container";
 import { cn } from "@/lib/utils";
 import { storage } from "@/lib";
+import { useAuth } from "@/contexts/AuthContext";
 import logoImg from "@/assets/loan-logo.png";
 
 export default function Navbar() {
@@ -32,18 +34,13 @@ export default function Navbar() {
   const isClickNavigatingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const { user, logout, isAuthenticated } = useAuth();
   const [activeHref, setActiveHref] = useState<string>(pathname);
 
   const handleLogout = () => {
     setIsProfileOpen(false);
     setIsMenuOpen(false);
-    try {
-      storage.local.clear();
-      storage.session.clear();
-    } catch (e) {
-      console.error("Failed to clear storage on logout:", e);
-    }
-    router.push("/sign-in");
+    logout();
   };
 
   useEffect(() => {
@@ -245,12 +242,12 @@ export default function Navbar() {
   }, []);
 
   const dropdownMenu = [
-    { label: "Profile", icon: User, href: "/dashboard" },
+    { label: "Profile", icon: User, href: "/dashboard/settings" },
     { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { label: "Funding", icon: Wallet, href: "/dashboard" },
-    { label: "Transactions", icon: ArrowRightLeft, href: "/dashboard" },
-    { label: "Payouts", icon: Landmark, href: "/dashboard" },
-    { label: "Settings", icon: Settings, href: "/dashboard" },
+    { label: "Funding", icon: Wallet, href: "/dashboard/funding" },
+    { label: "Transactions", icon: ArrowRightLeft, href: "/dashboard/transactions" },
+    { label: "Payouts", icon: Landmark, href: "/dashboard/payouts" },
+    { label: "Settings", icon: Settings, href: "/dashboard/settings" },
   ];
 
   return (
@@ -314,61 +311,91 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Desktop Profile Dropdown */}
+          {/* Desktop Right Side: Login Button if logged out, or Profile Dropdown if logged in */}
           <div className="hidden md:flex items-center gap-6" ref={profileRef}>
-            <div className="relative">
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-3 focus:outline-none cursor-pointer p-1 rounded-full hover:bg-white/5 transition-colors"
-              >
-                <div className="text-right hidden lg:block">
-                  <p className="text-sm font-bold text-white leading-tight">
-                    Fintech Ltd
-                  </p>
-                  <p className="text-xs text-white/70">Admin</p>
-                </div>
-                {/* Simulated Avatar */}
-                <div className="w-10 h-10 rounded-full bg-blue-900 border-2 border-white/20 overflow-hidden flex items-center justify-center">
-                  <User className="text-white/70 w-5 h-5" />
-                </div>
-              </button>
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-3 focus:outline-none cursor-pointer p-1 rounded-full hover:bg-white/5 transition-colors"
+                >
+                  <div className="text-right hidden lg:block">
+                    <p className="text-sm font-bold text-white leading-tight">
+                      {user?.name || "User"}
+                    </p>
+                    <p className="text-xs text-white/70">{user?.role || "USER"}</p>
+                  </div>
+                  {/* Avatar with initial or image */}
+                  <div className="w-10 h-10 rounded-full bg-blue-900 border-2 border-white/20 overflow-hidden flex items-center justify-center font-bold text-white text-sm">
+                    {user?.image ? (
+                      <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
+                    ) : user?.name ? (
+                      <span>{user.name.charAt(0).toUpperCase()}</span>
+                    ) : (
+                      <User className="text-white/70 w-5 h-5" />
+                    )}
+                  </div>
+                </button>
 
-              <AnimatePresence>
-                {isProfileOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
-                  >
-                    <div className="py-2">
-                      {dropdownMenu.map((item, index) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={index}
-                            href={item.href}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors"
-                          >
-                            <Icon className="w-4 h-4" />
-                            <span className="font-medium">{item.label}</span>
-                          </Link>
-                        );
-                      })}
-                      <div className="border-t border-gray-100 my-1" />
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span className="font-medium">Logout</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                <AnimatePresence>
+                  {isProfileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-3 w-60 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50"
+                    >
+                      {/* User Info Header */}
+                      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/70">
+                        <p className="text-sm font-bold text-gray-900 truncate">
+                          {user?.name || "User"}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                          {user?.email || "user@gmail.com"}
+                        </p>
+                        <span className="inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-primary border border-blue-100 uppercase tracking-wider">
+                          {user?.role || "USER"}
+                        </span>
+                      </div>
+
+                      <div className="py-2">
+                        {dropdownMenu.map((item, index) => {
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={index}
+                              href={item.href}
+                              onClick={() => setIsProfileOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors"
+                            >
+                              <Icon className="w-4 h-4" />
+                              <span className="font-medium">{item.label}</span>
+                            </Link>
+                          );
+                        })}
+                        <div className="border-t border-gray-100 my-1" />
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span className="font-medium">Logout</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link
+                href="/sign-in"
+                className="bg-white hover:bg-blue-50 text-primary font-bold text-sm px-6 py-2.5 rounded-xl transition-all shadow-sm active:scale-97 cursor-pointer flex items-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Login</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -395,18 +422,40 @@ export default function Navbar() {
             className="md:hidden bg-primary border-b border-white/10 overflow-hidden"
           >
             <Container className="py-6 flex flex-col gap-4">
-              {/* Mobile Profile Info */}
-              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10 mb-2">
-                <div className="w-10 h-10 rounded-full bg-blue-900 border border-white/20 overflow-hidden flex items-center justify-center">
-                  <User className="text-white/70 w-5 h-5" />
+              {/* Mobile Profile Info or Login Button */}
+              {isAuthenticated ? (
+                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-blue-900 border border-white/20 overflow-hidden flex items-center justify-center font-bold text-white text-sm">
+                    {user?.image ? (
+                      <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
+                    ) : user?.name ? (
+                      <span>{user.name.charAt(0).toUpperCase()}</span>
+                    ) : (
+                      <User className="text-white/70 w-5 h-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-base font-bold text-white leading-tight truncate">
+                      {user?.name || "User"}
+                    </p>
+                    <p className="text-xs text-white/70">{user?.role || "USER"}</p>
+                    {user?.email && (
+                      <p className="text-[11px] text-white/50 truncate max-w-[180px]">{user.email}</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-base font-bold text-white leading-tight">
-                    Fintech Ltd
-                  </p>
-                  <p className="text-sm text-white/70">Admin</p>
+              ) : (
+                <div className="mb-2">
+                  <Link
+                    href="/sign-in"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="w-full bg-white text-primary hover:bg-blue-50 font-bold text-base py-3 px-4 rounded-xl transition-all text-center flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Login</span>
+                  </Link>
                 </div>
-              </div>
+              )}
 
               {mainNavigation.map((item) => {
                 const isActive = activeHref === item.href;
@@ -426,28 +475,33 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              <div className="pt-5 mt-2 border-t border-white/10 flex flex-col gap-2">
-                {dropdownMenu.map((item, index) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={index}
-                      href={item.href}
-                      className="flex items-center gap-3 p-3 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors font-semibold"
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-3 p-3 text-red-300 hover:text-red-200 hover:bg-white/5 rounded-lg transition-colors font-semibold text-left w-full cursor-pointer"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span>Logout</span>
-                </button>
-              </div>
+
+              {/* Show dashboard links only when authenticated */}
+              {isAuthenticated && (
+                <div className="pt-5 mt-2 border-t border-white/10 flex flex-col gap-2">
+                  {dropdownMenu.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={index}
+                        href={item.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex items-center gap-3 p-3 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors font-semibold"
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 p-3 text-red-300 hover:text-red-200 hover:bg-white/5 rounded-lg transition-colors font-semibold text-left w-full cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              )}
             </Container>
           </motion.div>
         )}

@@ -1,11 +1,14 @@
 /**
  * API client for making HTTP requests
- * A simple wrapper around fetch with error handling and response parsing
+ * Configured for http://10.10.26.180:5004/api/v1
  */
 
+import storage from "./storage";
+
 // Default API configuration
-const API_CONFIG = {
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || "/api",
+export const API_CONFIG = {
+  baseUrl:
+    process.env.NEXT_PUBLIC_API_URL || "http://10.10.26.180:5004/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
@@ -16,12 +19,16 @@ const API_CONFIG = {
 export class ApiError extends Error {
   status: number;
   data: any;
+  errorMessages?: Array<{ path: string; message: string }>;
 
   constructor(message: string, status: number, data?: any) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.data = data;
+    if (data?.errorMessages) {
+      this.errorMessages = data.errorMessages;
+    }
   }
 }
 
@@ -32,8 +39,39 @@ const timeoutPromise = (ms: number) =>
   );
 
 /**
+ * Get stored authentication token if available
+ */
+export function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return (
+    storage.local.get<string>("accessToken") ||
+    storage.local.get<string>("token") ||
+    window.localStorage.getItem("accessToken") ||
+    window.localStorage.getItem("token")
+  );
+}
+
+/**
+ * Set authentication token in storage
+ */
+export function setAuthToken(token: string): void {
+  if (typeof window === "undefined") return;
+  storage.local.set("accessToken", token);
+  storage.local.set("token", token);
+}
+
+/**
+ * Remove authentication token from storage
+ */
+export function clearAuthToken(): void {
+  if (typeof window === "undefined") return;
+  storage.local.remove("accessToken");
+  storage.local.remove("token");
+}
+
+/**
  * Make an API request
- * @param endpoint - API endpoint
+ * @param endpoint - API endpoint or full URL
  * @param options - Fetch options
  * @returns Promise with response data
  */
@@ -41,24 +79,30 @@ export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
   const url = endpoint.startsWith("http")
     ? endpoint
-    : `${API_CONFIG.baseUrl}${
-        endpoint.startsWith("/") ? endpoint : `/${endpoint}`
-      }`;
+    : `${API_CONFIG.baseUrl}${cleanEndpoint}`;
 
-  const headers = {
-    ...API_CONFIG.headers,
-    ...options.headers,
+  const token = getAuthToken();
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
+  const headers: Record<string, string> = {
+    ...(!isFormData ? API_CONFIG.headers : {}),
+    ...(options.headers as Record<string, string>),
   };
 
-  const config = {
+  // Automatically attach Bearer token if not explicitly provided
+  if (token && !headers["Authorization"] && !headers["authorization"]) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const config: RequestInit = {
     ...options,
     headers,
   };
 
   try {
-    // Race between fetch and timeout
     const response = (await Promise.race([
       fetch(url, config),
       timeoutPromise(API_CONFIG.timeout),
@@ -66,7 +110,7 @@ export async function apiRequest<T = any>(
 
     // Handle HTTP errors
     if (!response.ok) {
-      let errorData;
+      let errorData: any;
       try {
         errorData = await response.json();
       } catch (e) {
@@ -74,11 +118,14 @@ export async function apiRequest<T = any>(
         errorData = { message: response.statusText };
       }
 
-      throw new ApiError(
-        errorData.message || "API request failed",
-        response.status,
-        errorData
-      );
+      // Extract error message from API response format
+      const message =
+        errorData?.error?.[0]?.message ||
+        errorData?.errorMessages?.[0]?.message ||
+        errorData?.message ||
+        "API request failed";
+
+      throw new ApiError(message, response.status, errorData);
     }
 
     // Parse response based on content type
@@ -105,9 +152,6 @@ export async function apiRequest<T = any>(
 
 /**
  * GET request
- * @param endpoint - API endpoint
- * @param options - Additional fetch options
- * @returns Promise with response data
  */
 export function get<T = any>(
   endpoint: string,
@@ -121,66 +165,54 @@ export function get<T = any>(
 
 /**
  * POST request
- * @param endpoint - API endpoint
- * @param data - Request body data
- * @param options - Additional fetch options
- * @returns Promise with response data
  */
 export function post<T = any>(
   endpoint: string,
   data?: any,
   options: RequestInit = {}
 ): Promise<T> {
+  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
   return apiRequest<T>(endpoint, {
     ...options,
     method: "POST",
-    body: data ? JSON.stringify(data) : undefined,
+    body: isFormData ? data : data !== undefined ? JSON.stringify(data) : undefined,
   });
 }
 
 /**
  * PUT request
- * @param endpoint - API endpoint
- * @param data - Request body data
- * @param options - Additional fetch options
- * @returns Promise with response data
  */
 export function put<T = any>(
   endpoint: string,
   data?: any,
   options: RequestInit = {}
 ): Promise<T> {
+  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
   return apiRequest<T>(endpoint, {
     ...options,
     method: "PUT",
-    body: data ? JSON.stringify(data) : undefined,
+    body: isFormData ? data : data !== undefined ? JSON.stringify(data) : undefined,
   });
 }
 
 /**
  * PATCH request
- * @param endpoint - API endpoint
- * @param data - Request body data
- * @param options - Additional fetch options
- * @returns Promise with response data
  */
 export function patch<T = any>(
   endpoint: string,
   data?: any,
   options: RequestInit = {}
 ): Promise<T> {
+  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
   return apiRequest<T>(endpoint, {
     ...options,
     method: "PATCH",
-    body: data ? JSON.stringify(data) : undefined,
+    body: isFormData ? data : data !== undefined ? JSON.stringify(data) : undefined,
   });
 }
 
 /**
  * DELETE request
- * @param endpoint - API endpoint
- * @param options - Additional fetch options
- * @returns Promise with response data
  */
 export function del<T = any>(
   endpoint: string,
@@ -192,7 +224,6 @@ export function del<T = any>(
   });
 }
 
-// Export default API object with all methods
 const api = {
   get,
   post,
@@ -200,6 +231,10 @@ const api = {
   patch,
   delete: del,
   request: apiRequest,
+  setToken: setAuthToken,
+  getToken: getAuthToken,
+  clearToken: clearAuthToken,
+  baseUrl: API_CONFIG.baseUrl,
 };
 
 export default api;

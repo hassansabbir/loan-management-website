@@ -6,11 +6,13 @@ import { CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function SuccessPage() {
-  const { data } = useApply();
+  const { data, submittedAppId } = useApply();
   const router = useRouter();
 
   // States captured when submitting successfully
-  const [appId] = useState(() => `#FL-2026-${Math.floor(100000 + Math.random() * 900000)}`);
+  const [appId] = useState(
+    () => submittedAppId || `#FL-2026-${Math.floor(100000 + Math.random() * 900000)}`
+  );
   const [submittedDate] = useState(() => {
     const today = new Date();
     const day = today.getDate();
@@ -23,8 +25,8 @@ export default function SuccessPage() {
     return `${day} ${month} ${year}`;
   });
 
-  const formatCurrency = (val: string) => {
-    const num = parseFloat(val);
+  const formatCurrency = (val: string | number) => {
+    const num = typeof val === "number" ? val : parseFloat(val);
     if (isNaN(num)) return "£0.00";
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
@@ -34,12 +36,12 @@ export default function SuccessPage() {
     }).format(num);
   };
 
-  const handleSuccessRedirect = () => {
+  const handleSuccessRedirect = (target: string = "/dashboard") => {
     // Clear localStorage on success page departure
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("funding_application");
     }
-    router.push("/");
+    router.push(target);
   };
 
   // Helper for displaying default values if empty
@@ -156,7 +158,7 @@ export default function SuccessPage() {
       <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
         <button
           type="button"
-          onClick={handleSuccessRedirect}
+          onClick={() => handleSuccessRedirect("/dashboard")}
           className="w-full sm:w-auto px-6 py-3.5 bg-primary hover:bg-[#003CB5] text-white font-bold text-sm rounded-xl transition-all active:scale-97 cursor-pointer justify-center inline-flex"
         >
           Go to Dashboard
@@ -164,7 +166,7 @@ export default function SuccessPage() {
         
         <button
           type="button"
-          onClick={handleSuccessRedirect}
+          onClick={() => handleSuccessRedirect("/dashboard/funding")}
           className="w-full sm:w-auto px-6 py-3.5 border border-slate-200 hover:border-slate-350 bg-white font-bold text-sm rounded-xl text-slate-500 hover:text-slate-800 transition-all active:scale-97 cursor-pointer justify-center inline-flex"
         >
           View My Applications

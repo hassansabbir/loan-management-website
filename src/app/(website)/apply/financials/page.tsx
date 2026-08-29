@@ -8,8 +8,8 @@ export default function FinancialsStep() {
   const { data, updateData, goToNextStep, goToPrevStep } = useApply();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const formatCurrency = (value: string) => {
-    const num = parseFloat(value);
+  const formatCurrency = (value: string | number) => {
+    const num = typeof value === "number" ? value : parseFloat(value);
     if (isNaN(num)) return "£0";
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
@@ -52,18 +52,18 @@ export default function FinancialsStep() {
               </span>
               <div className="flex items-end justify-between mt-3">
                 <span className="text-3xl font-extrabold text-primary tracking-tight">
-                  {formatCurrency(data.requestedAmount || "50000")}
+                  {formatCurrency(data.requestedAmount || "1000")}
                 </span>
                 <span className="text-xs font-bold text-slate-500 font-mono mb-1">
-                  Max: £250,000
+                  Min: £1,000 • Max: £250,000
                 </span>
               </div>
               <input
                 type="range"
-                min="10000"
+                min="1000"
                 max="250000"
-                step="5000"
-                value={data.requestedAmount || "50000"}
+                step="500"
+                value={data.requestedAmount || "1000"}
                 onChange={(e) => updateData({ requestedAmount: e.target.value })}
                 className="w-full mt-5 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary outline-none"
               />
