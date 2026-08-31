@@ -7,8 +7,8 @@ import {
   Wallet,
   ArrowRightLeft,
   Landmark,
-  Code2,
   Settings,
+  Component,
   LogOut,
 } from "lucide-react";
 import { storage } from "@/lib";
@@ -20,8 +20,8 @@ const menuItems = [
   { label: "Funding", icon: Wallet, href: "/dashboard/funding" },
   { label: "Transactions", icon: ArrowRightLeft, href: "/dashboard/transactions" },
   { label: "Payouts", icon: Landmark, href: "/dashboard/payouts" },
-  // { label: "Integrations", icon: Code2, href: "/dashboard/integrations" },
   { label: "Settings", icon: Settings, href: "/dashboard/settings" },
+  { label: "Integrations", icon: Component, href: "/dashboard/integrations" },
 ];
 
 export default function Sidebar() {

@@ -150,6 +150,19 @@ export interface BorrowerClientInfoData {
   };
 }
 
+export interface BorrowerIntegrationData {
+  _id?: string;
+  userId?: string;
+  apiKey: string;
+  apiKeyPreview?: string;
+  webhookSecret: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  webhookStatus?: string;
+  webhookUrl?: string;
+}
+
 export const dashboardService = {
   /**
    * GET /dashboard/client/overview-cards
@@ -301,6 +314,36 @@ export const dashboardService = {
     return await api.put<ApiResponse<BorrowerClientInfoData>>(
       "/borrowers/update/client-info",
       data
+    );
+  },
+
+  /**
+   * GET /borrowers/integration
+   */
+  async getBorrowerIntegration(): Promise<ApiResponse<BorrowerIntegrationData>> {
+    return await api.get<ApiResponse<BorrowerIntegrationData>>(
+      "/borrowers/integration"
+    );
+  },
+
+  /**
+   * POST /borrowers/integration/generate
+   */
+  async regenerateApiKey(): Promise<ApiResponse<BorrowerIntegrationData>> {
+    return await api.post<ApiResponse<BorrowerIntegrationData>>(
+      "/borrowers/integration/generate"
+    );
+  },
+
+  /**
+   * PUT /borrowers/integration/update
+   */
+  async updateWebhookUrl(payload: {
+    webhookUrl: string;
+  }): Promise<ApiResponse<BorrowerIntegrationData>> {
+    return await api.put<ApiResponse<BorrowerIntegrationData>>(
+      "/borrowers/integration/update",
+      payload
     );
   },
 };
