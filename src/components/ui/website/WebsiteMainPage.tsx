@@ -16,6 +16,7 @@ const WebsiteMainPage = () => {
       <HowItWorks />
       <Features />
       {/* <Stats /> */}
+      {/* <Stats /> */}
       <Repayment />
       <Eligibility />
       <Faq />
