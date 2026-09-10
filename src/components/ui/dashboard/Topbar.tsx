@@ -5,11 +5,13 @@ import Link from "next/link";
 import { Bell, User, Settings, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSocket } from "@/contexts/SocketContext";
 
 export default function Topbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
+  const { unreadCount } = useSocket();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -35,7 +37,13 @@ export default function Topbar() {
           className="relative p-2 text-gray-500 hover:text-gray-900 transition-colors focus:outline-none cursor-pointer"
         >
           <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+          {unreadCount > 0 ? (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white rounded-full border border-white text-[10px] font-bold flex items-center justify-center animate-in zoom-in-50">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          ) : (
+            <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+          )}
         </Link>
 
         {/* Divider */}

@@ -783,6 +783,127 @@ function verifyWebhook(payloadRawBody, signatureHeader, secret) {
 }`}
             </pre>
           </div>
+
+          {/* Section 5: B2B Dashboard Socket.io Real-time Notifications Guide */}
+          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 md:p-8 shadow-xs">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-purple-100 text-purple-800">
+                WS
+              </span>
+              <span className="text-sm font-mono font-semibold text-gray-800">
+                Socket.io Real-Time Notifications Connection
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+              Connect to our Socket.io server to receive real-time notifications for payment splits, automatic loan deductions, and payout status.
+            </p>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Connection Code */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Client Connection & Handshake
+                  </span>
+                  <button
+                    onClick={() =>
+                      copyToClipboard(
+                        `import { io } from "socket.io-client";\n\nconst SOCKET_URL = "http://10.10.26.180:5004";\nconst token = localStorage.getItem("token");\n\nconst socket = io(SOCKET_URL, {\n  auth: {\n    token: \`Bearer \${token}\`\n  },\n  transports: ["websocket"]\n});\n\nsocket.on("connect", () => {\n  console.log("✅ Socket connected. ID:", socket.id);\n});\n\nsocket.on("notification", (notification) => {\n  console.log("🔔 New notification:", notification);\n});\n\nconst heartbeatInterval = setInterval(() => {\n  if (socket.connected) socket.emit("heartbeat");\n}, 25000);`,
+                        "code",
+                        "socket-client"
+                      )
+                    }
+                    className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    {copiedCodeSnippet === "socket-client" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>Copy JS</span>
+                  </button>
+                </div>
+                <pre className="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs overflow-x-auto leading-relaxed">
+{`import { io } from "socket.io-client";
+
+const SOCKET_URL = "http://10.10.26.180:5004";
+const token = localStorage.getItem("token");
+
+const socket = io(SOCKET_URL, {
+  auth: {
+    token: \`Bearer \${token}\`
+  },
+  transports: ["websocket"]
+});
+
+socket.on("connect", () => {
+  console.log("✅ Connected:", socket.id);
+});
+
+socket.on("authenticated", (data) => {
+  console.log("🎉 Authenticated for user:", data.userId);
+});
+
+socket.on("notification", (notification) => {
+  console.log("🔔 Notification received:", notification);
+});
+
+// Periodic heartbeat every 25s
+setInterval(() => {
+  if (socket.connected) socket.emit("heartbeat");
+}, 25000);`}
+                </pre>
+              </div>
+
+              {/* Payload Schema */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Notification Payload Schema
+                  </span>
+                  <button
+                    onClick={() =>
+                      copyToClipboard(
+                        JSON.stringify(
+                          {
+                            _id: "64ebd3a7e6...",
+                            title: "New B2B Payment Split",
+                            message:
+                              "You received a payout of £120.00 from checkout session cs_test_123. Platform fee: £15.00, loan deduction: £15.00",
+                            receiver: "64ebd2f7e6...",
+                            reference: "64ebd3a5e6...",
+                            referenceModel: "Payment",
+                            screen: "PAYMENT_HISTORY",
+                            type: "PAYMENT",
+                            read: false,
+                            createdAt: "2026-08-31T10:00:00.000Z",
+                          },
+                          null,
+                          2
+                        ),
+                        "code",
+                        "socket-payload"
+                      )
+                    }
+                    className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    {copiedCodeSnippet === "socket-payload" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>Copy Schema</span>
+                  </button>
+                </div>
+                <pre className="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs overflow-x-auto leading-relaxed">
+{`{
+  "_id": "64ebd3a7e6...",
+  "title": "New B2B Payment Split",
+  "message": "You received a payout of £120.00 from checkout session cs_test_123. Platform fee: £15.00, loan deduction: £15.00",
+  "receiver": "64ebd2f7e6...",
+  "reference": "64ebd3a5e6...",
+  "referenceModel": "Payment",
+  "screen": "PAYMENT_HISTORY",
+  "type": "PAYMENT",
+  "read": false,
+  "createdAt": "2026-08-31T10:00:00.000Z"
+}`}
+                </pre>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
